@@ -431,7 +431,7 @@ url <- "https://www.bls.gov/iag/tgs/iag22.htm"
 # Get employment html page and select only the table with employment information, then transform it from html to a table.
 employment_info <- url %>%
   read_html() %>%
-  html_element(xpath = '//*[@id="iag22emp1"]') %>%
+  html_element() %>%
   html_table()
 
 # Display it so we can see what it looks like
