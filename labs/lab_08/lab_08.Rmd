@@ -1,0 +1,150 @@
+---
+title: "lab_08"
+author: "derek willis"
+date: "8/26/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## You will need
+
+* A Census API key
+
+## Load libraries and establish settings
+
+You'll need to load two packages for this: the tidyverse and tidycensus.
+
+**Task** load these two packages
+
+```{r}
+# Turn off scientific notation
+options(scipen=999)
+library(tidyverse)
+library(tidycensus)
+```
+
+## Setup Census API
+
+You'll need your Census API Key:
+
+**Task** set your API Key
+
+```{r echo=FALSE}
+#census_api_key("9019f6357e35c5c0207c34c0f624606b6449e709", install=TRUE)
+```
+
+## Load and view ACS variables
+
+You'll also need to load the list of American Community Survey variables from the 2019 5-year estimates so you can identify the codes you need:
+
+**Task** load the variables from the 2019 5-year ACS and save them to a dataframe
+
+```{r}
+# Write code here to load the ACS variables
+acs <- load_variables(2019, "acs5", cache = TRUE)
+```
+
+## Load PPP data
+
+You'll also need to load an RDS file of PPP loan applications that were removed from the original data by lenders in July.
+
+**Task** read the RDS file and save it to a dataframe
+
+```{r}
+ppp_data <- read_rds("data/lab_08.rds")
+```
+
+## Answer questions
+
+**Q1** What is the Maryland jurisdiction with the lowest median age, according to the ACS 2019 5-year estimates? You will need to find the variable for median age first.
+**A1** Baltimore City
+
+```{r}
+median_age <- get_acs(geography = "county",
+                                  variables = c(lowestmediage = "B01002_001"),
+                                  state = "MD",
+                                  year = 2019)
+
+median_age <- median_age %>%
+    arrange(desc(estimate)) 
+
+median_age
+
+```
+
+**Q2** Which Maryland counties have a median age of at least 50?
+**A2** 2
+
+```{r}
+median_age <- get_acs(geography = "county",
+                                  variables = c(lowestmediage = "B01002_001"),
+                                  state = "MD",
+                                  year = 2019)
+
+fifty_median <- median_age %>%
+  filter(estimate >= 50)
+
+fifty_median
+```
+
+**Q3** Which Maryland counties have the highest percentage of 5-17 year-olds that speak Spanish at home? You'll need one dataframe with county-level data on the number of 5-17 year-olds that speak Spanish at home and a second dataframe with the total population of 5-17 year-olds by county. For each dataframe, rename the `estimate` column to a meaningful name you've given the ACS variable, remove the `variable` columns in each using select and then join them based on GEOID and NAME. Then you can add a column to calculate the percentage of the total 5-17 population that speaks Spanish at home.
+**A3** Prince George's county
+
+```{r}
+spanish_fivetoseventeen_home <- get_acs(geography = "county",
+                                    variables = c(numberof = "B16007_004"),
+                                    state = "MD",
+                                    year = 2019)
+
+total_population_county <- get_acs(geography = "county",
+                                    variables = c(numberof = "B16007_002"),
+                                    state = "MD",
+                                    year = 2019)
+
+total_population_county %>%
+  inner_join(spanish_fivetoseventeen_home, by=c("GEOID", "NAME")) %>%
+  rename(total=estimate.x, fivetoseven=estimate.y,) %>%
+  mutate(change = (fivetoseven/total)*100) %>%
+  arrange(desc(change))
+
+```
+
+**Q4** Given the counties with the largest percentage of 5-17 year-olds that speak Spanish at home, what stands out to you about the data? How would you describe the top 5 counties? How would you describe Garrett County's numbers?
+**A4** Dorcheter and Talbot county stick out to me because they have a much lower amount of 5 to 17 year old that speak Spanish, yet they are fifth and sixth highest in the state. From the top five, the top two are really far from the pack, percentage wise. Different ways of how the percentage is so high is shown in the top five with PG and Montgomery having a lot of five to seventeen year old, where as Caroline and Talbot have a smaller amount. Frederick county has a close to average count of five to seventeen year old that speak Spanish. Garrett county lacks five to seventeen year old that speak Spanish. They have just below the average poluation but still lack the number five to seventeen year olds speaking Spanish.
+
+**Q5** Which 5-digit zip code had the most removed PPP applications, and what is the percentage of Black population in that zip code according to the ACS? To answer this question, you will need to create separate dataframes with ACS data on total population by zip code and Black population by zip code. In each dataframe, rename the `estimate` column and remove the `variable` column. You'll need to combine the two dataframes in order to calculate the percentage, and then you can combine it with the PPP data. Remember: the PPP data may not have only 5-digit zip codes!
+**A5** Zip code 60620 has the most removed PPP applicants. There is a 95.69 percentage of black populatuon in the 60620 zip.
+
+```{r}
+ppp_data <- ppp_data %>%
+  mutate(zip = str_sub(zip, 1, 5))
+
+top_zips <- ppp_data %>%
+  group_by(zip) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+  
+total_pop_zip <- get_acs(geography="zcta", variables = "B01001_001", state=NULL) %>%
+  rename(total = estimate) %>%
+  select(-variable)
+  
+black_pop_zip <- get_acs(geography="zcta", variables = "B01001B_001", state=NULL) %>%
+  rename(black = estimate) %>%
+  select(-variable)
+
+the_answer <- total_pop_zip %>% 
+  inner_join(black_pop_zip, by=c("GEOID", "NAME")) %>%
+  mutate(black_per_zip = (black/total)*100) %>%
+  arrange(desc(black))
+
+the_answer
+```
+
+**Q6** How would you describe to an editor the top 10 zip codes with the most removed application in terms of Black population? Where are they located, and what do they have in common? Are there any zip codes that seem different, and if so why?
+**A6** Most of the top ten is located in the state of Illinois after doing some research on all zip codes throughout the country. The one outlier is in Georgia, which is actually very interesting. Most of the top ten is Illinois, so to have Georgia in there, is crazy to think about since they are completely opposite of each other geographically.
+
+**Q7** What other columns from the PPP data could be useful in reporting on what happened to this removed loans?
+**A7** The lender because we see several applicants that fall under the same lender. If we discover which lender fell, then it is easy to determine which applicants were associated with removed loans. Also, rural_urban_indicator, this way we can tell what kind of environment this area is like where there was a removed loan. Another factor is retained employees and how many were lost. 
