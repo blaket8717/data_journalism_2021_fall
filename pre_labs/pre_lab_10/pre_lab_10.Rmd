@@ -206,4 +206,4 @@ That's better, but check out the tooltip by hovering over a county. It's not sup
 Ok, that looks better. Let's publish!
 
 **Task** Click the "Proceed" button until you get to the "Publish & Embed" tab, then click "Publish Now". Copy the URL and paste it below.
-**Answer** https://app.datawrapper.de/map/jprB7/publish 
+**Answer** https://datawrapper.dwcdn.net/jprB7/1/ 
