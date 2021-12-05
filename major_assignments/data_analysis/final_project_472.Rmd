@@ -83,4 +83,54 @@ Answer: In this data, there is a trend of victims being around the ages of 20-35
 
 For all the victims around the ages of 20-35, almost 2000 victims were recorded as 'not fleeing' while on the scene, where as 1628 were said to have fleed the scene. 
 
+```{r}
+library(janitor)
+library(tidyverse)
+library(corrr)
+```
 
+```{r}
+new_mex_shootings <- wapo_po_shooting %>%
+  filter(state == "NM")
+```
+
+```{r}
+nm_age_shootings <- new_mex_shootings %>%
+  group_by(age) %>%
+  summarise(total = n()) %>%
+  arrange(desc(total))
+
+# New Mexico Shootings by age
+```
+
+```{r}
+national_shootings <- wapo_po_shooting %>%
+  group_by(age) %>%
+  summarise(
+    count = n()
+  ) %>%
+  arrange(desc(count))
+
+# National shootings by age
+```
+
+```{r}
+pct_thirtysix <- c((10/134)*100)
+pct_twentyeight <- c((6/134)*100)
+shootings <- c(134)
+national_pct_thirtysix <- c((190/6735)*100)
+national_pct_thirtyeight <- c((165/6735)*100)
+all_shootings <- c (6735)
+#Want to compare the cor test with New Mexico and from a national perspective 
+```
+
+```{r}
+nm_age_pcts <- data.frame(pct_thirtysix, pct_twentyeight, shootings)
+all_age_pct <- data.frame(national_pct_thirtysix, national_pct_thirtyeight, all_shootings)
+```
+
+```{r}
+cor.test(nm_age_pcts$pct_thirtysix, all_age_pct$national_pct_thirtysix)
+
+#need some assistance here
+```
